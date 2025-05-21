@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<con:soapui-project name="BWAS-TestSuite" soapui-version="5.7.0" xmlns:con="http://eviware.com/soapui/config">
+    <con:settings/>
+    <con:interface xsi:type="con:RestService" wadlVersion="http://wadl.dev.java.net/2009/02" name="BWAS-API" type="rest" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <con:settings/>
+        <con:definitionCache type="TEXT" rootPart=""/>
+        <con:endpoints>
+            <con:endpoint>${#Project#baseUrl}</con:endpoint>
+        </con:endpoints>
+        <con:resource name="Authorization" path="/api/v1/authorization">
+            <con:settings/>
+            <con:parameters/>
+            <con:method name="GET" method="GET">
+                <con:settings/>
+                <con:parameters/>
+                <con:representation type="RESPONSE">
+                    <con:mediaType>application/json</con:mediaType>
+                    <con:status>200</con:status>
+                    <con:params/>
+                    <con:element>AuthorizationDocument</con:element>
+                </con:representation>
+                <con:request name="Get Authorization" mediaType="application/json" postQueryString="false">
+                    <con:settings>
+                        <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+                    </con:settings>
+                    <con:endpoint>${#Project#baseUrl}</con:endpoint>
+                    <con:request/>
+                    <con:credentials>
+                        <con:authType>No Authorization</con:authType>
+                    </con:credentials>
+                    <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+                    <con:jmsPropertyConfig/>
+                    <con:parameters/>
+                </con:request>
+            </con:method>
+            <con:method name="POST" method="POST">
+                <con:settings/>
+                <con:parameters/>
+                <con:representation type="REQUEST">
+                    <con:mediaType>application/json</con:mediaType>
+                    <con:params/>
+                    <con:element>AuthorizationDocument</con:element>
+                </con:representation>
+                <con:representation type="RESPONSE">
+                    <con:mediaType>application/json</con:mediaType>
+                    <con:status>201</con:status>
+                    <con:params/>
+                    <con:element>AuthorizationDocument</con:element>
+                </con:representation>
+                <con:request name="Create Authorization" mediaType="application/json" postQueryString="false">
+                    <con:settings>
+                        <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+                    </con:settings>
+                    <con:endpoint>${#Project#baseUrl}</con:endpoint>
+                    <con:request>{
+    "transactionId": "${#TestCase#transactionId}",
+    "tin": "123456789",
+    "documentType": "F1040",
+    "documentStatus": "PENDING",
+    "authorizationStatus": "PENDING",
+    "signatureId": null,
+    "createdDate": "${#TestCase#currentDate}",
+    "updatedDate": "${#TestCase#currentDate}",
+    "documentContent": "Sample document content",
+    "metadata": "Sample metadata"
+}</con:request>
+                    <con:credentials>
+                        <con:authType>No Authorization</con:authType>
+                    </con:credentials>
+                    <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+                    <con:jmsPropertyConfig/>
+                    <con:parameters/>
+                </con:request>
+            </con:method>
+        </con:resource>
+    </con:interface>
+    <con:testSuite name="Authorization Test Suite">
+        <con:settings/>
+        <con:runType>SEQUENTIAL</con:runType>
+        <con:testCase failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="Authorization Flow" searchProperties="true">
+            <con:settings/>
+            <con:testStep type="groovy" name="Setup Test Data">
+                <con:settings/>
+                <con:config>
+                    <script>import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+// Generate test data
+def formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+def currentDate = LocalDateTime.now().format(formatter)
+def transactionId = UUID.randomUUID().toString()
+
+// Store in test case properties
+testCase.setPropertyValue("currentDate", currentDate)
+testCase.setPropertyValue("transactionId", transactionId)
+
+log.info "Generated test data:"
+log.info "Transaction ID: ${transactionId}"
+log.info "Current Date: ${currentDate}"</script>
+                </con:config>
+            </con:testStep>
+            <con:testStep type="request" name="Create Authorization">
+                <con:settings/>
+                <con:config xsi:type="con:RequestStep" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                    <con:interface>BWAS-API</con:interface>
+                    <con:operation>POST</con:operation>
+                    <con:request name="Create Authorization"/>
+                </con:config>
+            </con:testStep>
+            <con:testStep type="request" name="Get Authorization">
+                <con:settings/>
+                <con:config xsi:type="con:RequestStep" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                    <con:interface>BWAS-API</con:interface>
+                    <con:operation>GET</con:operation>
+                    <con:request name="Get Authorization"/>
+                </con:config>
+            </con:testStep>
+            <con:testStep type="groovy" name="Validate Response">
+                <con:settings/>
+                <con:config>
+                    <script>import groovy.json.JsonSlurper
+
+def response = context.expand('${Get Authorization#Response}')
+def json = new JsonSlurper().parseText(response)
+
+// Validate response
+assert json.transactionId == testCase.getPropertyValue("transactionId")
+assert json.tin == "123456789"
+assert json.documentType == "F1040"
+assert json.documentStatus == "PENDING"
+assert json.authorizationStatus == "PENDING"
+
+log.info "Response validation successful"</script>
+                </con:config>
+            </con:testStep>
+            <con:properties>
+                <con:property>
+                    <con:name>baseUrl</con:name>
+                    <con:value>http://localhost:8080</con:value>
+                </con:property>
+            </con:properties>
+        </con:testCase>
+    </con:testSuite>
+    <con:properties>
+        <con:property>
+            <con:name>baseUrl</con:name>
+            <con:value>http://localhost:8080</con:value>
+        </con:property>
+    </con:properties>
+    <con:wssContainer/>
+    <con:oAuth2ProfileContainer/>
+    <con:oAuth1ProfileContainer/>
+</con:soapui-project> 
